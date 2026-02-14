@@ -1,6 +1,7 @@
 package reverseproxy
 
 import (
+	"bytes"
 	"io"
 	"testing"
 )
@@ -80,5 +81,27 @@ func TestBuffering(t *testing.T) {
 				return
 			}
 		})
+	}
+}
+
+func TestPutBufDiscardOversized(t *testing.T) {
+	// A small buffer should be returned to the pool.
+	small := bytes.NewBuffer(make([]byte, 0, 1024))
+	small.WriteString("hello")
+	putBuf(small)
+	got := bufPool.Get().(*bytes.Buffer)
+	// The buffer we just put back should be reused (capacity matches).
+	if got.Cap() != 1024 {
+		t.Errorf("expected small buffer to be returned to pool, got cap=%d", got.Cap())
+	}
+
+	// A large buffer should be discarded, not returned to the pool.
+	large := bytes.NewBuffer(make([]byte, 0, maxBufferSize+1))
+	large.WriteString("world")
+	putBuf(large)
+	got2 := bufPool.Get().(*bytes.Buffer)
+	// The pool should create a new buffer via New, not return the large one.
+	if got2.Cap() > maxBufferSize {
+		t.Errorf("expected large buffer to be discarded, got cap=%d", got2.Cap())
 	}
 }
