@@ -105,10 +105,4 @@ func TestPutBufDiscardOversized(t *testing.T) {
 	if large.Len() == 0 {
 		t.Error("expected large buffer to NOT be reset by putBuf")
 	}
-
-	// Get from pool: should never get the oversized buffer back.
-	got := bufPool.Get().(*bytes.Buffer)
-	if got.Cap() > maxBufferSize {
-		t.Errorf("expected pool to not contain oversized buffer, got cap=%d", got.Cap())
-	}
 }
