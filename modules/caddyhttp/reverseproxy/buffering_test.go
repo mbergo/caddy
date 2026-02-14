@@ -85,14 +85,6 @@ func TestBuffering(t *testing.T) {
 }
 
 func TestPutBufDiscardOversized(t *testing.T) {
-	// Drain the pool so we start from a known state.
-	for {
-		b := bufPool.Get().(*bytes.Buffer)
-		if b.Cap() == 0 {
-			break
-		}
-	}
-
 	// A small buffer (within limit) should be returned to the pool
 	// and should be reset before being pooled.
 	small := bytes.NewBuffer(make([]byte, 0, 1024))
