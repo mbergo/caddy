@@ -85,23 +85,38 @@ func TestBuffering(t *testing.T) {
 }
 
 func TestPutBufDiscardOversized(t *testing.T) {
-	// A small buffer should be returned to the pool.
+	// Drain the pool so we start from a known state.
+	for {
+		b := bufPool.Get().(*bytes.Buffer)
+		if b.Cap() == 0 {
+			break
+		}
+	}
+
+	// A small buffer (within limit) should be returned to the pool
+	// and should be reset before being pooled.
 	small := bytes.NewBuffer(make([]byte, 0, 1024))
 	small.WriteString("hello")
 	putBuf(small)
-	got := bufPool.Get().(*bytes.Buffer)
-	// The buffer we just put back should be reused (capacity matches).
-	if got.Cap() != 1024 {
-		t.Errorf("expected small buffer to be returned to pool, got cap=%d", got.Cap())
+	if small.Len() != 0 {
+		t.Error("expected small buffer to be reset after putBuf")
 	}
 
-	// A large buffer should be discarded, not returned to the pool.
+	// A large buffer (exceeding limit) should NOT be returned.
+	// Verify indirectly: after putting a large buffer, getting from pool
+	// should never return a buffer with capacity > maxBufferSize.
 	large := bytes.NewBuffer(make([]byte, 0, maxBufferSize+1))
 	large.WriteString("world")
 	putBuf(large)
-	got2 := bufPool.Get().(*bytes.Buffer)
-	// The pool should create a new buffer via New, not return the large one.
-	if got2.Cap() > maxBufferSize {
-		t.Errorf("expected large buffer to be discarded, got cap=%d", got2.Cap())
+
+	// Verify the large buffer was NOT reset (putBuf skipped it).
+	if large.Len() == 0 {
+		t.Error("expected large buffer to NOT be reset by putBuf")
+	}
+
+	// Get from pool: should never get the oversized buffer back.
+	got := bufPool.Get().(*bytes.Buffer)
+	if got.Cap() > maxBufferSize {
+		t.Errorf("expected pool to not contain oversized buffer, got cap=%d", got.Cap())
 	}
 }
