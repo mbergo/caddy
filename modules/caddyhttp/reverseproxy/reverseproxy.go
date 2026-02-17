@@ -40,6 +40,7 @@ import (
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/caddyserver/caddy/v2/internal"
 	"github.com/caddyserver/caddy/v2/modules/caddyevents"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp/headers"
@@ -465,7 +466,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyht
 		reqBodyBuf.buf = nil
 
 		defer func() {
-			putBuf(bufferedReqBody)
+			internal.PutBuffer(&bufPool, bufferedReqBody)
 		}()
 	}
 
@@ -1619,7 +1620,7 @@ func (brc bodyReadCloser) Close() error {
 	// Inside this package this will be set to nil for fully-buffered
 	// requests due to the possibility of retrial.
 	if brc.buf != nil {
-		putBuf(brc.buf)
+		internal.PutBuffer(&bufPool, brc.buf)
 	}
 	// For fully-buffered bodies, body is nil, so Close is a no-op.
 	if brc.body != nil {
@@ -1628,23 +1629,7 @@ func (brc bodyReadCloser) Close() error {
 	return nil
 }
 
-// putBuf returns a buffer to the pool if it is not too large.
-// Buffers that have grown beyond maxBufferSize are discarded
-// so that the pool does not retain oversized buffers
-// indefinitely after a burst of large requests/responses.
-func putBuf(buf *bytes.Buffer) {
-	if buf.Cap() > maxBufferSize {
-		return
-	}
-	buf.Reset()
-	bufPool.Put(buf)
-}
 
-// maxBufferSize is the maximum size of a buffer in bytes
-// that will be returned to a pool. Buffers larger than this
-// are discarded so memory can be reclaimed by the garbage
-// collector after load subsides.
-const maxBufferSize = 64 * 1024
 
 // bufPool is used for buffering requests and responses.
 var bufPool = sync.Pool{

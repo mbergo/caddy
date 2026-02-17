@@ -12,24 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package fastcgi
+package internal
 
 import (
 	"bytes"
 	"sync"
-
-	"github.com/caddyserver/caddy/v2/internal"
 )
 
-var bufPool = sync.Pool{
-	New: func() any {
-		return new(bytes.Buffer)
-	},
-}
+// MaxBufferSize is the maximum size of a buffer in bytes
+// that will be returned to a pool. Buffers larger than this
+// are discarded so memory can be reclaimed by the garbage
+// collector.
+const MaxBufferSize = 64 * 1024
 
-// PutBuffer is a convenience wrapper around internal.PutBuffer
-// for the fastcgi package's buffer pool.
-func PutBuffer(buf *bytes.Buffer) {
-	internal.PutBuffer(&bufPool, buf)
+// PutBuffer returns a buffer to the pool after resetting it,
+// but only if it is smaller than MaxBufferSize. This prevents
+// memory bloat from large buffers being kept in the pool.
+func PutBuffer(pool *sync.Pool, buf *bytes.Buffer) {
+	if buf.Cap() > MaxBufferSize {
+		return
+	}
+	buf.Reset()
+	pool.Put(buf)
 }
-

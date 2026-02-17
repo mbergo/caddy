@@ -25,6 +25,7 @@ import (
 	"sync"
 
 	"github.com/caddyserver/caddy/v2"
+	"github.com/caddyserver/caddy/v2/internal"
 )
 
 func init() {
@@ -80,7 +81,7 @@ func (adminLoad) handleLoad(w http.ResponseWriter, r *http.Request) error {
 
 	buf := bufPool.Get().(*bytes.Buffer)
 	buf.Reset()
-	defer putBuf(buf)
+	defer internal.PutBuffer(&bufPool, buf)
 
 	_, err := io.Copy(buf, r.Body)
 	if err != nil {
@@ -144,7 +145,7 @@ func (adminLoad) handleAdapt(w http.ResponseWriter, r *http.Request) error {
 
 	buf := bufPool.Get().(*bytes.Buffer)
 	buf.Reset()
-	defer putBuf(buf)
+	defer internal.PutBuffer(&bufPool, buf)
 
 	_, err := io.Copy(buf, r.Body)
 	if err != nil {
@@ -220,15 +221,4 @@ var bufPool = sync.Pool{
 	},
 }
 
-// putBuf returns a buffer to the pool if its capacity
-// does not exceed maxBufferSize, otherwise it is discarded
-// so memory can be reclaimed after load subsides.
-func putBuf(buf *bytes.Buffer) {
-	if buf.Cap() > maxBufferSize {
-		return
-	}
-	buf.Reset()
-	bufPool.Put(buf)
-}
 
-const maxBufferSize = 64 * 1024

@@ -36,6 +36,7 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	"github.com/caddyserver/caddy/v2"
+	"github.com/caddyserver/caddy/v2/internal"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp/templates"
 )
@@ -142,7 +143,7 @@ func (fsrv *FileServer) serveBrowse(fileSystem fs.FS, root, dirPath string, w ht
 
 	buf := bufPool.Get().(*bytes.Buffer)
 	buf.Reset()
-	defer putBuf(buf)
+	defer internal.PutBuffer(&bufPool, buf)
 
 	acceptHeader := strings.ToLower(strings.Join(r.Header["Accept"], ","))
 	w.Header().Set("Last-Modified", listing.lastModified.Format(http.TimeFormat))
@@ -354,15 +355,4 @@ var bufPool = sync.Pool{
 	},
 }
 
-// putBuf returns a buffer to the pool if its capacity
-// does not exceed maxBufferSize, otherwise it is discarded
-// so memory can be reclaimed after load subsides.
-func putBuf(buf *bytes.Buffer) {
-	if buf.Cap() > maxBufferSize {
-		return
-	}
-	buf.Reset()
-	bufPool.Put(buf)
-}
 
-const maxBufferSize = 64 * 1024

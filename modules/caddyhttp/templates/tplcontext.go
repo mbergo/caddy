@@ -42,6 +42,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/caddyserver/caddy/v2"
+	"github.com/caddyserver/caddy/v2/internal"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 )
 
@@ -112,7 +113,7 @@ func (c TemplateContext) OriginalReq() http.Request {
 func (c TemplateContext) funcInclude(filename string, args ...any) (string, error) {
 	bodyBuf := bufPool.Get().(*bytes.Buffer)
 	bodyBuf.Reset()
-	defer putBuf(bodyBuf)
+	defer internal.PutBuffer(&bufPool, bodyBuf)
 
 	err := c.readFileToBuffer(filename, bodyBuf)
 	if err != nil {
@@ -136,7 +137,7 @@ func (c TemplateContext) funcInclude(filename string, args ...any) (string, erro
 func (c TemplateContext) funcReadFile(filename string) (string, error) {
 	bodyBuf := bufPool.Get().(*bytes.Buffer)
 	bodyBuf.Reset()
-	defer putBuf(bodyBuf)
+	defer internal.PutBuffer(&bufPool, bodyBuf)
 
 	err := c.readFileToBuffer(filename, bodyBuf)
 	if err != nil {
@@ -187,7 +188,7 @@ func (c TemplateContext) funcHTTPInclude(uri string) (string, error) {
 
 	buf := bufPool.Get().(*bytes.Buffer)
 	buf.Reset()
-	defer putBuf(buf)
+	defer internal.PutBuffer(&bufPool, buf)
 
 	virtReq, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
@@ -223,7 +224,7 @@ func (c TemplateContext) funcHTTPInclude(uri string) (string, error) {
 func (c *TemplateContext) funcImport(filename string) (string, error) {
 	bodyBuf := bufPool.Get().(*bytes.Buffer)
 	bodyBuf.Reset()
-	defer putBuf(bodyBuf)
+	defer internal.PutBuffer(&bufPool, bodyBuf)
 
 	err := c.readFileToBuffer(filename, bodyBuf)
 	if err != nil {
@@ -370,7 +371,7 @@ func (TemplateContext) funcMarkdown(input any) (string, error) {
 
 	buf := bufPool.Get().(*bytes.Buffer)
 	buf.Reset()
-	defer putBuf(buf)
+	defer internal.PutBuffer(&bufPool, buf)
 
 	err := md.Convert([]byte(inputStr), buf)
 	if err != nil {
@@ -582,18 +583,7 @@ var bufPool = sync.Pool{
 	},
 }
 
-// putBuf returns a buffer to the pool if its capacity
-// does not exceed maxBufferSize, otherwise it is discarded
-// so memory can be reclaimed after load subsides.
-func putBuf(buf *bytes.Buffer) {
-	if buf.Cap() > maxBufferSize {
-		return
-	}
-	buf.Reset()
-	bufPool.Put(buf)
-}
 
-const maxBufferSize = 64 * 1024
 
 // at time of writing, sprig.FuncMap() makes a copy, thus
 // involves iterating the whole map, so do it just once
