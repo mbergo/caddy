@@ -20,7 +20,7 @@ import (
 )
 
 // PutBuffer returns a buffer to the pool if its capacity
-// does not exceed maxBufferSize, otherwise it is discarded
+// does not exceed MaxBufferSize, otherwise it is discarded
 // so memory can be reclaimed after load subsides.
 func PutBuffer(pool *sync.Pool, buf *bytes.Buffer) {
 	if buf.Cap() > MaxBufferSize {
