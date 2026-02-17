@@ -26,6 +26,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/caddyserver/caddy/v2"
+	"github.com/caddyserver/caddy/v2/internal"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 )
 
@@ -410,7 +411,7 @@ func (t *Templates) Validate() error {
 func (t *Templates) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
 	buf := bufPool.Get().(*bytes.Buffer)
 	buf.Reset()
-	defer putBuf(buf)
+	defer internal.PutBuffer(&bufPool, buf)
 
 	// shouldBuf determines whether to execute templates on this response,
 	// since generally we will not want to execute for images or CSS, etc.

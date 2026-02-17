@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"io"
 	"testing"
+
+	"github.com/caddyserver/caddy/v2/internal"
 )
 
 type zeroReader struct{}
@@ -89,20 +91,20 @@ func TestPutBufDiscardOversized(t *testing.T) {
 	// and should be reset before being pooled.
 	small := bytes.NewBuffer(make([]byte, 0, 1024))
 	small.WriteString("hello")
-	putBuf(small)
+	internal.PutBuffer(&bufPool, small)
 	if small.Len() != 0 {
-		t.Error("expected small buffer to be reset after putBuf")
+		t.Error("expected small buffer to be reset after internal.PutBuffer")
 	}
 
 	// A large buffer (exceeding limit) should NOT be returned.
 	// Verify indirectly: after putting a large buffer, getting from pool
-	// should never return a buffer with capacity > maxBufferSize.
-	large := bytes.NewBuffer(make([]byte, 0, maxBufferSize+1))
+	// should never return a buffer with capacity > internal.MaxBufferSize.
+	large := bytes.NewBuffer(make([]byte, 0, internal.MaxBufferSize+1))
 	large.WriteString("world")
-	putBuf(large)
+	internal.PutBuffer(&bufPool, large)
 
-	// Verify the large buffer was NOT reset (putBuf skipped it).
+	// Verify the large buffer was NOT reset (internal.PutBuffer skipped it).
 	if large.Len() == 0 {
-		t.Error("expected large buffer to NOT be reset by putBuf")
+		t.Error("expected large buffer to NOT be reset by internal.PutBuffer")
 	}
 }

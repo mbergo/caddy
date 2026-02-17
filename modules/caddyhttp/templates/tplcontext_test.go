@@ -29,6 +29,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/caddyserver/caddy/v2/internal"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 )
 
@@ -242,7 +243,7 @@ func TestNestedInclude(t *testing.T) {
 
 		buf = bufPool.Get().(*bytes.Buffer)
 		buf.Reset()
-		defer putBuf(buf)
+		defer internal.PutBuffer(&bufPool, buf)
 		buf.WriteString(test.child)
 		err = context.executeTemplateInBuffer(test.childFile, buf)
 

@@ -39,6 +39,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/caddyserver/caddy/v2/internal"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
@@ -150,7 +152,7 @@ func (c *client) Do(p map[string]string, req io.Reader) (r io.Reader, err error)
 	writer := &streamWriter{c: c}
 	writer.buf = bufPool.Get().(*bytes.Buffer)
 	writer.buf.Reset()
-	defer putBuf(writer.buf)
+	defer internal.PutBuffer(&bufPool, writer.buf)
 
 	err = writer.writeBeginRequest(uint16(Responder), 0)
 	if err != nil {
