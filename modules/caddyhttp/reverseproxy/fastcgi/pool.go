@@ -17,8 +17,6 @@ package fastcgi
 import (
 	"bytes"
 	"sync"
-
-	"github.com/caddyserver/caddy/v2/internal"
 )
 
 var bufPool = sync.Pool{
